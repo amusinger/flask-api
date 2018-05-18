@@ -1,0 +1,6 @@
+model_checkpoint_path: "mymodel"
+all_model_checkpoint_paths: "tmp/cat_demo/11/mymodel.ckpt-4016"
+all_model_checkpoint_paths: "tmp/cat_demo/11/mymodel.ckpt-4518"
+all_model_checkpoint_paths: "tmp/cat_demo/11/mymodel.ckpt-5020"
+all_model_checkpoint_paths: "tmp/cat_demo/11/mymodel.ckpt-5522"
+all_model_checkpoint_paths: "mymodel"
