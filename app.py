@@ -1,21 +1,11 @@
 import flask
-from flask import Flask
-import sys, os
 import numpy as np
-from keras.models import Model
-from keras.applications import VGG19
-from keras.preprocessing import image
 from PIL import Image
-from keras.applications import imagenet_utils
-from keras.preprocessing.image import img_to_array
-from sklearn.neighbors import NearestNeighbors
-import io
 import tensorflow as tf
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pickle
 from matplotlib import colors as mcolors
-from flask import send_file
 import json
 
 app = flask.Flask(__name__)
@@ -111,126 +101,6 @@ def get_class_color(txt):
     else:
         return preds
 
-def load_features_knn():
-    print("Loading features..")
-    features = np.loadtxt("./short.txt", delimiter=",")
-    global n_neighbours, knn
-    n_neighbours = 6
-    print("KNN")
-    knn = NearestNeighbors(n_neighbors=n_neighbours, algorithm="brute", metric="cosine")
-    knn.fit(features)
-    print(knn)
-    print(features[:5])
-
-def load_client_model():
-    print("Loading model.. ")
-    base_model = VGG19(weights='imagenet')
-    global similar_model
-    similar_model = Model(input=base_model.input, output=base_model.get_layer('block4_pool').output)
-    print(similar_model.summary())
-
-
-def prepare_image(path):
-    print("Preparing image..")
-
-    image = Image.open(path)
-    image = image.resize((224,224))
-    if image.mode != "RGB":
-        image = image.convert("RGB")
-    image = img_to_array(image)
-    image = np.expand_dims(image, axis=0)
-    image = imagenet_utils.preprocess_input(image)
-
-     # return the processed image
-    return image
-
-def find_topk_unique(indices, distances, k):
-
-    # Sort by ascending distance
-    i_sort_1 = np.argsort(distances)
-    distances_sorted = distances[i_sort_1]
-    indices_sorted = indices[i_sort_1]
-
-    window = np.array(indices_sorted[:k], dtype=int)  # collect first k elements for window intialization
-    window_unique, j_window_unique = np.unique(window, return_index=True)  # find unique window values and indices
-    j = k  # track add index when there are not enough unique values in the window
-    # Run while loop until window_unique has k elements
-    while len(window_unique) != k:
-        # Append new index and value to the window
-        j_window_unique = np.append(j_window_unique, [j])  # append new index
-        window = np.append(window_unique, [indices_sorted[j]])  # append new value
-        # Update the new unique window
-        window_unique, j_window_unique_temp = np.unique(window, return_index=True)
-        j_window_unique = j_window_unique[j_window_unique_temp]
-        # Update add index
-        j += 1
-
-    # Sort the j_window_unique (not sorted) by distances and get corresponding
-    # top-k unique indices and distances (based on smallest distances)
-    distances_sorted_window = distances_sorted[j_window_unique]
-    indices_sorted_window = indices_sorted[j_window_unique]
-    u_sort = np.argsort(distances_sorted_window)  # sort
-
-    distances_top_k_unique = distances_sorted_window[u_sort].reshape((1, -1))
-    indices_top_k_unique = indices_sorted_window[u_sort].reshape((1, -1))
-
-    return indices_top_k_unique, distances_top_k_unique
-
-def find_similar(path):
-    imgs_test = []
-
-    img_orig = image.load_img(path, target_size=(224, 224))  # load
-    imgs_test.append(np.array(img_orig))
-
-    global similar_model, knn, n_neighbours
-    print(similar_model.summary())
-    print(knn)
-    img_test_ar = image.img_to_array(img_orig)
-    img_test = np.expand_dims(img_test_ar, axis=0)
-    img_test = imagenet_utils.preprocess_input(img_test)
-    print(img_test)
-    img_test_features = similar_model.predict(img_test).flatten()
-
-    distances, indices = knn.kneighbors(np.array([img_test_features]), return_distance=True)
-    distances = distances.flatten()
-    indices = indices.flatten()
-    indices, distances = find_topk_unique(indices, distances, n_neighbours)
-    return indices, distances
-
-@app.route("/similar", methods=["POST"])
-def predict_similar():
-    # initialize the data dictionary that will be returned from the
-    # view
-    data = {}
-    data["success"] = False
-
-    # ensure an image was properly uploaded to our endpoint
-    if flask.request.method == "POST":
-        data = {"post": True}
-        if 'image' in flask.request.files:
-            data['image_parsing'] = True
-            temp_dir = './uploads'
-
-            # file = flask.request.files['image']
-            # data['file'] = True
-            # upload_path = os.path.join(temp_dir, file.filename)
-            # file.save(upload_path)
-
-            f = flask.request.files['image']
-
-            indices, distances = find_similar(f)
-
-            images_dir = os.listdir('./short')
-            images = []
-            for index, file in enumerate(images_dir):
-                if (index in indices[0]):
-                    img = image.load_img(os.path.join(f, file))
-                    images.append(np.array(img))
-                    r = {"name": file, "index": index}
-                    data["predictions"].append(r)
-
-
-    return flask.jsonify(data)
 
 
 @app.route("/predict", methods=["POST"])
