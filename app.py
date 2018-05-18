@@ -57,7 +57,7 @@ def predict_image_class(path):
 
 
 def load_text_model():
-    print("Loading linear regression")
+    print("Loading text")
     df = pd.read_csv('index.csv')
     col = ['Category', 'Title']
     df = df[col]
