@@ -128,22 +128,23 @@ def predict_image():
                 data["predictions"].append((str(human_string), str(score)))
 
             data["success1"] = True
-        txt = str(flask.request.values['title'])
-        print(txt)
-        data["success2"] = True
-        if txt == "Title":
-            data["success2"] = False
-
-        if  data["success2"] and txt:
-            # data['text_parsing'] = flask.request.data['title']
-            txt1 = flask.request.values["title"]
-
-            print("im here", txt1)
-            cat, col = get_class_color(txt1)
-            data["category_title"] = cat
-            data["color"] = col
-
+        if 'title' in flask.request.values:
+            txt = str(flask.request.values['title'])
+            print(txt)
             data["success2"] = True
+            if txt == "Title":
+                data["success2"] = False
+
+            if  data["success2"] and txt:
+                # data['text_parsing'] = flask.request.data['title']
+                txt1 = flask.request.values["title"]
+
+                print("im here", txt1)
+                cat, col = get_class_color(txt1)
+                data["category_title"] = cat
+                data["color"] = col
+
+                data["success2"] = True
 
 
     # return the data dictionary as a JSON response
